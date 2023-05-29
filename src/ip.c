@@ -44,7 +44,8 @@ void ip_in(buf_t *buf, uint8_t *src_mac) {
     if (totlen < buf->len)
         buf_remove_padding(buf, buf->len - totlen);
 
-    if (protocol != NET_PROTOCOL_ICMP && protocol != NET_PROTOCOL_UDP) {
+    if (protocol != NET_PROTOCOL_ICMP && protocol != NET_PROTOCOL_UDP &&
+        protocol != NET_PROTOCOL_TCP) {
         icmp_unreachable(buf, hdr->src_ip, ICMP_CODE_PROTOCOL_UNREACH);
     }
 

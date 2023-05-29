@@ -31,7 +31,7 @@ typedef struct tcp_hdr {
     uint8_t data_offset : 4;// 这个头有多少个32位字长, 后面的是数据
     tcp_flags_t flags;
     uint16_t window_size16; // 接收窗口大小, 流量控制用
-    uint16_t chunksum16;    // 校验和
+    uint16_t checksum16;    // 校验和
     uint16_t urgent_pointer16;
 } tcp_hdr_t;
 
@@ -91,10 +91,10 @@ typedef enum connect_state {
     // 收到数据
     TCP_CONN_DATA_RECV,
     // 关闭连接
-    TCP_CONN_CLOSED,
+    TCP_CONN_CLOSED, 
 } connect_state_t;
 
-typedef void (*tcp_handler_t)(tcp_connect_t* conect, connect_state_t state);
+typedef void (*tcp_handler_t)(tcp_connect_t *conect, connect_state_t state);
 
 void tcp_init();
 int tcp_open(uint16_t port, tcp_handler_t handler);
