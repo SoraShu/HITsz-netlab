@@ -2,5 +2,8 @@
 .cache
 # build
 build
+# test
+testing
 # vscode
 .vscode
+compile_commands.json
