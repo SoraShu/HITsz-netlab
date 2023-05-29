@@ -50,7 +50,6 @@ void ip_in(buf_t *buf, uint8_t *src_mac) {
 
     buf_remove_header(buf, hdr->hdr_len * 4);
     net_in(buf, protocol, hdr->src_ip);
-    printf("protocol = %d!\n", protocol);
 }
 
 /**
