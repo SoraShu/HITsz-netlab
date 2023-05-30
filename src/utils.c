@@ -78,12 +78,12 @@ uint16_t checksum16(uint16_t *data, size_t len) {
         if (i == len - 1)
             sum += *((uint8_t *)data + i);
         else
-            sum += swap16(data[i / 2]);
+            sum += data[i / 2];
     }
 
     while (sum >> 16) {
         sum = (sum & 0xFFFF) + (sum >> 16);
     }
 
-    return swap16((~sum) & 0xFFFF);
+    return (~sum) & 0xFFFF;
 }

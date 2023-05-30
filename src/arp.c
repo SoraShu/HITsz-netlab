@@ -135,6 +135,11 @@ void arp_out(buf_t *buf, uint8_t *ip) {
         return;
     }
 
+    buf_t *buf2 = (buf_t *)map_get(&arp_buf, ip);
+    if (buf2 == NULL) {
+        return;
+    }
+
     if (map_get(&arp_buf, ip) == NULL) {
         map_set(&arp_buf, ip, buf);
         arp_req(ip);

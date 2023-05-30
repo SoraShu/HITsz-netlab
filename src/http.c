@@ -6,19 +6,19 @@
 #define TCP_FIFO_SIZE 40
 
 typedef struct http_fifo {
-    tcp_connect_t* buffer[TCP_FIFO_SIZE];
+    tcp_connect_t *buffer[TCP_FIFO_SIZE];
     uint8_t front, tail, count;
 } http_fifo_t;
 
 static http_fifo_t http_fifo_v;
 
-static void http_fifo_init(http_fifo_t* fifo) {
+static void http_fifo_init(http_fifo_t *fifo) {
     fifo->count = 0;
     fifo->front = 0;
     fifo->tail = 0;
 }
 
-static int http_fifo_in(http_fifo_t* fifo, tcp_connect_t* tcp) {
+static int http_fifo_in(http_fifo_t *fifo, tcp_connect_t *tcp) {
     if (fifo->count >= TCP_FIFO_SIZE) {
         return -1;
     }
@@ -31,11 +31,11 @@ static int http_fifo_in(http_fifo_t* fifo, tcp_connect_t* tcp) {
     return 0;
 }
 
-static tcp_connect_t* http_fifo_out(http_fifo_t* fifo) {
+static tcp_connect_t *http_fifo_out(http_fifo_t *fifo) {
     if (fifo->count == 0) {
         return NULL;
     }
-    tcp_connect_t* tcp = fifo->buffer[fifo->tail];
+    tcp_connect_t *tcp = fifo->buffer[fifo->tail];
     fifo->tail++;
     if (fifo->tail >= TCP_FIFO_SIZE) {
         fifo->tail = 0;
@@ -44,11 +44,11 @@ static tcp_connect_t* http_fifo_out(http_fifo_t* fifo) {
     return tcp;
 }
 
-static size_t get_line(tcp_connect_t* tcp, char* buf, size_t size) {
+static size_t get_line(tcp_connect_t *tcp, char *buf, size_t size) {
     size_t i = 0;
     while (i < size) {
         char c;
-        if (tcp_connect_read(tcp, (uint8_t*)&c, 1) > 0) {
+        if (tcp_connect_read(tcp, (uint8_t *)&c, 1) > 0) {
             if (c == '\n') {
                 break;
             }
@@ -63,25 +63,24 @@ static size_t get_line(tcp_connect_t* tcp, char* buf, size_t size) {
     return i;
 }
 
-static size_t http_send(tcp_connect_t* tcp, const char* buf, size_t size) {
-    size_t send = 0;
-    while (send < size) {
-        send += tcp_connect_write(tcp, (const uint8_t*)buf + send, size - send);
-        net_poll();
-    }
-    return send;
-}
+// static size_t http_send(tcp_connect_t *tcp, const char *buf, size_t size) {
+//     size_t send = 0;
+//     while (send < size) {
+//         send +=
+//             tcp_connect_write(tcp, (const uint8_t *)buf + send, size - send);
+//         net_poll();
+//     }
+//     return send;
+// }
 
-static void close_http(tcp_connect_t* tcp) {
+static void close_http(tcp_connect_t *tcp) {
     tcp_connect_close(tcp);
     printf("http closed.\n");
 }
 
-
-
-static void send_file(tcp_connect_t* tcp, const char* url) {
-    FILE* file;
-    uint32_t size;
+static void send_file(tcp_connect_t *tcp, const char *url) {
+    // FILE *file;
+    // uint32_t size;
     // const char* content_type = "text/html";
     char file_path[255];
     char tx_buffer[1024];
@@ -94,11 +93,32 @@ static void send_file(tcp_connect_t* tcp, const char* url) {
     注意，本实验的WEB服务器网页存放在XHTTP_DOC_DIR目录中
     */
 
-   // TODO
-
+    sprintf(file_path, "%s%s", XHTTP_DOC_DIR, url);
+    FILE *fp = fopen(file_path, "rb");
+    if (fp == NULL) {
+        sprintf(tx_buffer,
+                "HTTP/1.0 404 Not Found\n\n"
+                "<html><head>"
+                "<title>404 Not Found</title>"
+                "</head><body>"
+                "<h1>Not Found</h1>"
+                "<p>The requested URL %s was not found on this server.</p>"
+                "</body></html>",
+                url);
+        tcp_connect_write(tcp, (uint8_t *)tx_buffer, strlen(tx_buffer));
+    } else {
+        tcp_connect_write(tcp, (const uint8_t *)"HTTP/1.0 200 OK\n\n", 17);
+        size_t tmp;
+        while ((tmp = fread(tx_buffer, 1, 1024, fp)) > 0) {
+            net_poll();
+            tcp_connect_write(tcp, (uint8_t *)tx_buffer, tmp);
+        }
+        fclose(fp);
+    }
+    net_poll();
 }
 
-static void http_handler(tcp_connect_t* tcp, connect_state_t state) {
+static void http_handler(tcp_connect_t *tcp, connect_state_t state) {
     if (state == TCP_CONN_CONNECTED) {
         http_fifo_in(&http_fifo_v, tcp);
         printf("http conntected.\n");
@@ -109,7 +129,6 @@ static void http_handler(tcp_connect_t* tcp, connect_state_t state) {
         assert(0);
     }
 }
-
 
 // 在端口上创建服务器。
 
@@ -124,42 +143,50 @@ int http_server_open(uint16_t port) {
 // 从FIFO取出请求并处理。新的HTTP请求时会发送到FIFO中等待处理。
 
 void http_server_run(void) {
-    tcp_connect_t* tcp;
+    tcp_connect_t *tcp;
     char url_path[255];
     char rx_buffer[1024];
 
     while ((tcp = http_fifo_out(&http_fifo_v)) != NULL) {
-        int i;
-        char* c = rx_buffer;
-
+        // int i;
+        // char *c = rx_buffer;
 
         /*
         1、调用get_line从rx_buffer中获取一行数据，如果没有数据，则调用close_http关闭tcp，并继续循环
         */
 
-       // TODO
-
+        size_t len = get_line(tcp, rx_buffer, 1023);
+        if (len == 0) {
+            close_http(tcp);
+            continue;
+        }
 
         /*
         2、检查是否有GET请求，如果没有，则调用close_http关闭tcp，并继续循环
         */
 
-       // TODO
-
+        if (memcmp(rx_buffer, "GET", 3) != 0) {
+            close_http(tcp);
+            continue;
+        }
 
         /*
         3、解析GET请求的路径，注意跳过空格，找到GET请求的文件，调用send_file发送文件
         */
 
-       // TODO
-
+        int i = 3, j = 0;
+        while (rx_buffer[i] == 0x20)
+            i++;
+        while (rx_buffer[i] != 0x20)
+            url_path[j++] = rx_buffer[i++];
+        url_path[j] = 0;
+        send_file(tcp, url_path);
 
         /*
         4、调用close_http关掉连接
         */
 
-       // TODO
-
+        close_http(tcp);
 
         printf("!! final close\n");
     }
